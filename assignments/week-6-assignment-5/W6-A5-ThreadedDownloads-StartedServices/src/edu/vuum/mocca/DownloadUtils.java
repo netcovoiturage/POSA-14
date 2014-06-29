@@ -7,6 +7,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 
+import edu.vuum.mocca.R;
+
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -30,7 +32,26 @@ public class DownloadUtils {
      * Used for debugging.
      */
     static final String TAG = "DownloadActivity";
+    
+    /**
+     * The key used to store/retrieve a Messenger extra from a Bundle.
+     */
+	public static final String MESSENGER_KEY = "MESSENGER";
 	
+	/**
+     * The key used to store/retrieve a file's pathname from a Bundle.
+     */
+	public static final String PATHNAME_KEY = "PATHNAME";
+    
+    /**
+     * If you have access to a stable Internet connection for testing
+     * purposes, feel free to change this variable to false so it
+     * actually downloads the image from a remote server.
+     */
+    // TODO - You can change this to the appropriate setting for your
+    // environment.
+    static final boolean DOWNLOAD_OFFLINE = true;
+    
     /**
      * Make an Intent which will start a service if provided as a
      * parameter to startService().
@@ -66,7 +87,7 @@ public class DownloadUtils {
     	
     	Intent intent = new Intent(context,
                                    service);
-    	intent.putExtra("MESSENGER", 
+    	intent.putExtra(MESSENGER_KEY, 
                         messenger);
     	intent.setData(Uri.parse(uri));
     	
@@ -84,7 +105,7 @@ public class DownloadUtils {
                                  Messenger messenger) {
         Message msg = Message.obtain();
         Bundle data = new Bundle();
-        data.putString("PATHNAME",
+        data.putString(PATHNAME_KEY,
                        outputPath);
         
         // Make the Bundle the "data" of the Message.
@@ -100,8 +121,7 @@ public class DownloadUtils {
     
     /**
      * Download a file to the Android file system, then respond with
-     * the file location using the provided Messenger.  Hint: use the
-     * other methods in this class
+     * the file location using the provided Messenger. 
      */
     public static void downloadAndRespond(Context context,
                                           Uri uri,
@@ -110,6 +130,19 @@ public class DownloadUtils {
                                             uri),
                  messenger);
     }
+    
+    /**
+     * The resource that we write to the file system in offline
+     * mode. Note that this must be the same image that the testing
+     * project expects. (found in res/drawable-nodpi and Options.java)
+     */
+    static final int OFFLINE_TEST_IMAGE = R.raw.dougs;
+	
+    /**
+     * The file name that we should use to store the image in offline mode
+     */
+    static final String OFFLINE_FILENAME = "dougs.jpg";
+    
     /**
      * Download the file located at the provided internet url using
      * the URL class, store it on the android file system using
@@ -122,27 +155,54 @@ public class DownloadUtils {
      */
     public static String downloadFile (Context context,
                                        Uri uri) {
+    	
     	try {
-            // Create a temp file.
-            final File file = getTemporaryFile(context,
-                                               uri.toString());
-            Log.d(TAG, "    downloading to " + file);
-
-            // Download the contents at the URL, which should
-            // reference an image.
-            final InputStream in = (InputStream)
-                new URL(uri.toString()).getContent();
-            final OutputStream os =
-                new FileOutputStream(file);
-
-            // Copy the contents of the downloaded image to the temp
-            // file.
-            copy(in, os);
-            in.close();
-            os.close();
-
-            // Return the pathname of the temp file.
-            return file.getAbsolutePath();
+    	
+            // If we're offline, write the image in our resources to
+            // disk, then return that pathname.
+            if (DOWNLOAD_OFFLINE) {
+	        	
+                // Store the image on the file system. We can store it
+                // as private since the test project runs in the same
+                // process as the target project
+                FileOutputStream out =
+                    context.openFileOutput(OFFLINE_FILENAME, 0);
+	        	
+                // Get a stream from the image resource
+                InputStream in =
+                    context.getResources().openRawResource(OFFLINE_TEST_IMAGE);
+	        	
+                // Write the resource to disk.
+                copy(in, out);
+                in.close();
+                out.close();
+	        	
+                return context.getFilesDir().toString() + File.separator + OFFLINE_FILENAME;
+            }
+    	
+            // Otherwise, go ahead and download the file
+            else {
+                // Create a temp file.
+                final File file = getTemporaryFile(context,
+                                                   uri.toString());
+                Log.d(TAG, "    downloading to " + file);
+	
+                // Download the contents at the URL, which should
+                // reference an image.
+                final InputStream in = (InputStream)
+                    new URL(uri.toString()).getContent();
+                final OutputStream os =
+                    new FileOutputStream(file);
+	
+                // Copy the contents of the downloaded image to the
+                // temp file.
+                copy(in, os);
+                in.close();
+                os.close();
+	
+                // Return the pathname of the temp file.
+                return file.getAbsolutePath();
+            }
         } catch (Exception e) {
             Log.e(TAG, "Exception while downloading. Returning null.");
             Log.e(TAG, e.toString());
@@ -160,7 +220,7 @@ public class DownloadUtils {
      * @throws IOException
      */
     static private File getTemporaryFile(final Context context,
-                                      final String url) throws IOException {
+                                         final String url) throws IOException {
         
         // This is what you'd normally call to get a unique temporary
         // file, but for testing purposes we always name the file the
@@ -171,7 +231,7 @@ public class DownloadUtils {
         //                                  + System.currentTimeMillis());
 
         return context.getFileStreamPath(Base64.encodeToString(url.getBytes(),
-                                          Base64.NO_WRAP));
+                                                               Base64.NO_WRAP));
     }
 
     /**
@@ -182,8 +242,8 @@ public class DownloadUtils {
      * @return
      * @throws IOException
      */
-    static private int copy(final InputStream in,
-                            final OutputStream out) throws IOException {
+    static public int copy(final InputStream in,
+                           final OutputStream out) throws IOException {
         final int BUFFER_LENGTH = 1024;
         final byte[] buffer = new byte[BUFFER_LENGTH];
         int totalRead = 0;
