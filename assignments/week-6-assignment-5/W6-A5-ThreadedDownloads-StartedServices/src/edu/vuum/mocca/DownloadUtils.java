@@ -50,7 +50,7 @@ public class DownloadUtils {
      */
     // TODO - You can change this to the appropriate setting for your
     // environment.
-    static final boolean DOWNLOAD_OFFLINE = true;
+    static final boolean DOWNLOAD_OFFLINE = false;
     
     /**
      * Make an Intent which will start a service if provided as a
@@ -201,6 +201,7 @@ public class DownloadUtils {
                 os.close();
 	
                 // Return the pathname of the temp file.
+                Log.d(TAG, " successful finished " + file.getAbsolutePath());
                 return file.getAbsolutePath();
             }
         } catch (Exception e) {
