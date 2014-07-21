@@ -34,7 +34,7 @@ public class DownloadUtils {
     */
     // TODO - You can change this to the appropriate setting for your
     // environment.
-    static final boolean DOWNLOAD_OFFLINE = true;
+    static final boolean DOWNLOAD_OFFLINE = false;
     
     /**
      * The resource that we write to the file system in offline
@@ -88,6 +88,7 @@ public class DownloadUtils {
             // Otherwise, go ahead and download the file
             else {
                 // Create a temp file.
+            	Log.d(TAG, "    context =[" + context + "]\n uri=[" + uri.toString());
                 final File file = getTemporaryFile(context,
                                                    uri.toString());
                 Log.d(TAG, "    downloading to " + file);
@@ -134,7 +135,7 @@ public class DownloadUtils {
         // return context.getFileStreamPath(Base64.encodeToString(url.getBytes(),
         //                                  Base64.NO_WRAP)
         //                                  + System.currentTimeMillis());
-
+    	Log.d(TAG, " context =[" + context + "]\n name=[" + Base64.encodeToString(url.getBytes(), Base64.NO_WRAP));
         return context.getFileStreamPath(Base64.encodeToString(url.getBytes(),
                                                                Base64.NO_WRAP));
     }
